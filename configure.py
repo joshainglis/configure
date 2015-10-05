@@ -13,6 +13,9 @@ from re import compile as re_compile
 from collections import MutableMapping, Mapping
 from datetime import timedelta
 
+from six import string_types, text_type
+from six import reraise as raise_
+
 try:
     from yaml import Loader as Loader
 except ImportError:
@@ -281,7 +284,7 @@ class Configuration(MutableMapping):
 def _timedelta_contructor(loader, node):
     item = loader.construct_scalar(node)
 
-    if not isinstance(item, basestring) or not item:
+    if not isinstance(item, string_types) or not item:
         raise ConfigurationError(
             "value '%s' cannot be interpreted as date range" % item)
     num, typ = item[:-1], item[-1].lower()
@@ -310,7 +313,7 @@ def _timedelta_contructor(loader, node):
 def _bytesize_constructor(loader, node):
     item = loader.construct_scalar(node)
 
-    if not isinstance(item, basestring) or not item:
+    if not isinstance(item, string_types) or not item:
         raise ConfigurationError(
             "value '%s' cannot be interpreted as byte size" % item)
 
@@ -353,7 +356,7 @@ def _bytesize_constructor(loader, node):
 def _re_constructor(loader, node):
     item = loader.construct_scalar(node)
 
-    if not isinstance(item, basestring) or not item:
+    if not isinstance(item, string_types) or not item:
         raise ConfigurationError(
             "value '%s' cannot be interpreted as regular expression" % item)
 
@@ -402,7 +405,7 @@ class Factory(Directive):
     def __call__(self, ctx):
         config = dict(self.config)
         factory = self.factory
-        if isinstance(factory, basestring):
+        if isinstance(factory, string_types):
             try:
                 factory = import_string(factory)
             except ImportStringError as e:
@@ -539,7 +542,7 @@ def import_string(import_name, silent=False):
     :copyright: (c) 2011 by the Werkzeug Team
     """
     # force the import name to automatically convert to strings
-    if isinstance(import_name, unicode):
+    if isinstance(import_name, text_type):
         import_name = str(import_name)
     try:
         if ':' in import_name:
@@ -550,7 +553,7 @@ def import_string(import_name, silent=False):
             return __import__(import_name)
         # __import__ is not able to handle unicode strings in the fromlist
         # if the module is a package
-        if isinstance(obj, unicode):
+        if isinstance(obj, text_type):
             obj = obj.encode('utf-8')
         try:
             return getattr(__import__(module, None, None, [obj]), obj)
@@ -560,9 +563,9 @@ def import_string(import_name, silent=False):
             modname = module + '.' + obj
             __import__(modname)
             return sys.modules[modname]
-    except ImportError, e:
+    except ImportError as e:
         if not silent:
-            raise ImportStringError(import_name, e), None, sys.exc_info()[2]
+            raise_(ImportStringError(import_name, e), None, sys.exc_info()[2])
 
 class ImportStringError(ImportError):
     """Provides information about a failed :func:`import_string` attempt.
@@ -621,7 +624,7 @@ def format_config(config, _lvl=0):
     return buf
 
 def print_config(config):
-    print format_config(config)
+    print(format_config(config))
 
 def obj_by_ref(o, path):
     for s in path.split("."):
