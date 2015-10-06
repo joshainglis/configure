@@ -25,8 +25,10 @@ __all__ = (
     "Configuration", "ConfigurationError", "configure_logging",
     "format_config", "print_config", "import_string", "ImportStringError")
 
+
 class ConfigurationError(ValueError):
     """ Configuration error"""
+
 
 class Configuration(MutableMapping):
     """ Configuration object
@@ -178,7 +180,7 @@ class Configuration(MutableMapping):
 
     @classmethod
     def from_file(cls, filename, ctx=None, pwd=None, constructors=None,
-            multi_constructors=None, configure=True):
+                  multi_constructors=None, configure=True):
         """ Construct :class:`.Configuration` object by reading and parsing file
         ``filename``.
 
@@ -195,13 +197,13 @@ class Configuration(MutableMapping):
             pwd = path.dirname(filename)
         with open(filename, "r") as f:
             return cls.from_string(f.read(), ctx=ctx, pwd=pwd,
-                    constructors=constructors,
-                    multi_constructors=multi_constructors,
-                    configure=configure)
+                                   constructors=constructors,
+                                   multi_constructors=multi_constructors,
+                                   configure=configure)
 
     @classmethod
     def from_string(cls, string, ctx=None, pwd=None, constructors=None,
-            multi_constructors=None, configure=True):
+                    multi_constructors=None, configure=True):
         """ Construct :class:`.Configuration` from ``string``.
 
         :param string:
@@ -214,16 +216,17 @@ class Configuration(MutableMapping):
         """
         ctx = ctx or {}
         ctx['pwd'] = pwd
+        # noinspection PyAugmentAssignment
         string = string % ctx
         cfg = cls.load(string, constructors=constructors,
-                multi_constructors=multi_constructors)
+                       multi_constructors=multi_constructors)
         return cls.from_dict(cfg, pwd=pwd, configure=configure)
 
     @classmethod
     def from_dict(cls, cfg, pwd=None, configure=True):
         """ Construct :class:`.Configuration` from dict ``d``.
 
-        :param d:
+        :param cfg:
             mapping object to use for config
         """
         c = cls(cfg, pwd=pwd)
@@ -261,11 +264,13 @@ class Configuration(MutableMapping):
         if not '_constructors' in cls.__dict__:
             cls.__dict__['_constructors'] = dict(cls._constructors)
         cname = '!%s' % name
+
         def registration(func):
             if cname in cls._constructors:
                 raise ValueError("constructor '%s' already exist")
             cls._constructors[cname] = func
             return func
+
         return registration
 
     @classmethod
@@ -273,12 +278,15 @@ class Configuration(MutableMapping):
         if not '_multi_constructors' in cls.__dict__:
             cls.__dict__['_multi_constructors'] = dict(cls._multi_constructors)
         cname = '!%s:' % name
+
         def registration(func):
             if cname in cls._multi_constructors:
                 raise ValueError("multiconstructor '%s' already exist")
             cls._multi_constructors[cname] = func
             return func
+
         return registration
+
 
 @Configuration.add_constructor('timedelta')
 def _timedelta_contructor(loader, node):
@@ -309,6 +317,7 @@ def _timedelta_contructor(loader, node):
         raise ConfigurationError(
             "value '%s' cannot be interpreted as date range" % item)
 
+
 @Configuration.add_constructor('bytesize')
 def _bytesize_constructor(loader, node):
     item = loader.construct_scalar(node)
@@ -318,7 +327,7 @@ def _bytesize_constructor(loader, node):
             "value '%s' cannot be interpreted as byte size" % item)
 
     if item.isdigit():
-        return int(item) # bytes
+        return int(item)  # bytes
 
     num, typ = item[:-1], item[-1].lower()
 
@@ -352,6 +361,7 @@ def _bytesize_constructor(loader, node):
         raise ConfigurationError(
             "value '%s' cannot be interpreted as byte size" % item)
 
+
 @Configuration.add_constructor('re')
 def _re_constructor(loader, node):
     item = loader.construct_scalar(node)
@@ -362,6 +372,7 @@ def _re_constructor(loader, node):
 
     return re_compile(item)
 
+
 @Configuration.add_constructor('directory')
 def _directory_constructor(loader, node):
     item = loader.construct_scalar(node)
@@ -371,13 +382,13 @@ def _directory_constructor(loader, node):
         raise ConfigurationError("'%s' is not a directory" % item)
     return item
 
-class Directive(object):
 
+class Directive(object):
     def __call__(self, ctx):
         raise NotImplementedError()
 
-class Ref(Directive):
 
+class Ref(Directive):
     def __init__(self, ref):
         self.ref = ref
 
@@ -392,12 +403,13 @@ class Ref(Directive):
 
     __repr__ = __str__
 
+
 @Configuration.add_multi_constructor('ref')
 def _ref_constructor(loader, tag, node):
     return Ref(tag)
 
-class Factory(Directive):
 
+class Factory(Directive):
     def __init__(self, factory, config):
         self.factory = factory
         self.config = config
@@ -422,7 +434,7 @@ class Factory(Directive):
         pos_cut = len(argspec.args) - len(argspec.defaults or [])
 
         for a in argspec.args[:pos_cut]:
-            if not a in config:
+            if a not in config:
                 raise ConfigurationError(
                     "missing '%s' argument for %s" % (a, factory))
             arg = config.pop(a)
@@ -454,6 +466,7 @@ class Factory(Directive):
 
     __repr__ = __str__
 
+
 @Configuration.add_multi_constructor('factory')
 def _factory_constructor(loader, tag, node):
     if node.value:
@@ -462,8 +475,8 @@ def _factory_constructor(loader, tag, node):
     else:
         return Factory(tag, {})
 
-class Obj(Directive):
 
+class Obj(Directive):
     def __init__(self, obj):
         self.obj = obj
 
@@ -473,24 +486,26 @@ class Obj(Directive):
         except ImportStringError as e:
             raise ConfigurationError("cannot import obj: %s" % e)
 
+
 @Configuration.add_multi_constructor('obj')
 def _obj_constructor(loader, tag, node):
     return Obj(tag)
 
-class Include(Directive):
 
+class Include(Directive):
     def __init__(self, filename):
         self.filename = filename
 
     def __call__(self, ctx):
         return Configuration.from_file(path.join(ctx._pwd, self.filename))
 
+
 @Configuration.add_multi_constructor('include')
 def _include_constructor(loader, tag, node):
     return Include(tag)
 
-class Extends(Directive):
 
+class Extends(Directive):
     def __init__(self, filename, config):
         self.filename = filename
         self.config = config
@@ -512,16 +527,19 @@ class Extends(Directive):
     def __contains__(self, name):
         return name in self.config
 
+
 @Configuration.add_multi_constructor('extends')
 def _extends_constructor(loader, tag, node):
     item = loader.construct_mapping(node, deep=True)
     return Extends(tag, item)
+
 
 @Configuration.add_constructor('logging')
 def _logging_constructor(loader, node):
     config = loader.construct_mapping(node, deep=True)
     disable_existing_loggers = config.pop('disable_existing_loggers', False)
     configure_logging(config, disable_existing_loggers=disable_existing_loggers)
+
 
 def import_string(import_name, silent=False):
     """Imports an object based on a string.  This is useful if you want to
@@ -569,6 +587,7 @@ def import_string(import_name, silent=False):
         if not silent:
             raise_(ImportStringError(import_name, e), None, sys.exc_info()[2])
 
+
 class ImportStringError(ImportError):
     """Provides information about a failed :func:`import_string` attempt.
 
@@ -614,6 +633,7 @@ class ImportStringError(ImportError):
         return '<%s(%r, %r)>' % (self.__class__.__name__, self.import_name,
                                  self.exception)
 
+
 def format_config(config, _lvl=0):
     indent = "  " * _lvl
     buf = ""
@@ -625,13 +645,16 @@ def format_config(config, _lvl=0):
             buf += "%s%s\n" % ("  " * (_lvl + 1), v)
     return buf
 
+
 def print_config(config):
     print(format_config(config))
+
 
 def obj_by_ref(o, path):
     for s in path.split("."):
         o = getattr(o, s)
     return o
+
 
 def configure_logging(logcfg=None, disable_existing_loggers=True):
     """ Configure logging in a sane way
