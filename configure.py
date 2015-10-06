@@ -166,7 +166,7 @@ class Configuration(MutableMapping):
                 self.__struct = self.__struct(
                     Configuration.from_dict({}, pwd=self._pwd))
 
-        for k, v in self.iteritems():
+        for k, v in self.items():
             self[k] = _impl(v)
 
         return self
@@ -553,8 +553,10 @@ def import_string(import_name, silent=False):
             return __import__(import_name)
         # __import__ is not able to handle unicode strings in the fromlist
         # if the module is a package
-        if isinstance(obj, text_type):
-            obj = obj.encode('utf-8')
+        try:
+            obj = obj.decode('utf-8')
+        except:
+            pass
         try:
             return getattr(__import__(module, None, None, [obj]), obj)
         except (ImportError, AttributeError):
