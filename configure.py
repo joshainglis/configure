@@ -4,14 +4,13 @@
     ===================================================
 
 """
-
 import sys
-from os import path, mkdir
-from inspect import getargspec
-from types import FunctionType
-from re import compile as re_compile
 from collections import MutableMapping, Mapping
 from datetime import timedelta
+from inspect import getargspec
+from os import path, mkdir
+from re import compile as re_compile
+from types import FunctionType
 
 from six import string_types, text_type
 from six import reraise as raise_
